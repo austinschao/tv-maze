@@ -2,9 +2,13 @@
 
 const $showsList = $("#showsList");
 const $episodesArea = $("#episodesArea");
+const $episodesList = $('#episodesList');
 const $searchForm = $("#searchForm");
 const $searchFormTerm = $("#searchForm-term");
 const TVMAZE_BASE_URL = "http://api.tvmaze.com";
+const MISSING_IMG_URL = 'https://store-images.s-microsoft.com/image/apps.65316.13510798887490672.6e1ebb25-96c8-4504-b714-1f7cbca3c5ad.f9514a23-1eb8-4916-a18e-99b1a9817d15?mode=scale&q=90&h=300&w=300';
+
+
 
 /** Given a search term, search for tv shows that match that query.
  *
@@ -23,19 +27,26 @@ async function getShowsByTerm(term) {
     { params: { q: term } }
   );
 
-  console.log("response...", response);
   const shows = [];
 
+  //map!!!
   for (let i = 0; i < response.data.length; i++) {
     let show = {};
     show.id = response.data[i].show.id;
     show.name = response.data[i].show.name;
-    if (response.data[i].show.summary !== null) { show.summary = response.data[i].show.summary; };
-    if (response.data[i].show.image !== null) { show.image = response.data[i].show.image.original; };
+    //ternary operator CLEAN IT UP!!!
+    if (response.data[i].show.summary !== null) {
+      show.summary = response.data[i].show.summary;
+    } else {
+      show.summary = 'No Summary';
+    }
+    if (response.data[i].show.image !== null) {
+      show.image = response.data[i].show.image.original;
+    } else {
+      show.image = MISSING_IMG_URL;
+    }
     shows.push(show);
   }
-
-  console.log(shows);
   return shows;
 }
 
@@ -49,8 +60,8 @@ function populateShows(shows) {
       `<div data-show-id="${show.id}" class="Show col-md-12 col-lg-6 mb-4">
          <div class="media">
            <img
-              src="http://static.tvmaze.com/uploads/images/medium_portrait/160/401704.jpg"
-              alt="Bletchly Circle San Francisco"
+              src="${show.image}"
+              alt="${show.name}"
               class="w-25 me-3">
            <div class="media-body">
              <h5 class="text-primary">${show.name}</h5>
@@ -62,7 +73,6 @@ function populateShows(shows) {
          </div>
        </div>
       `);
-
     $showsList.append($show);
   }
 }
@@ -86,12 +96,44 @@ $searchForm.on("submit", async function (evt) {
 });
 
 
+/** Make the episode list visible */
+
+// Add event listener on the parent showList to listen for
+// a click on the button
+// find the specific button of the episodes or it will work on all other buttons too
+// Give the anon function a name! (its a conductor fx)
+
+$showsList.on('click', 'button', function(e) {
+  const $episode = $(e.target.closest('.Show'));
+  const episodeId = $episode.data().showId;
+  $episodesList.empty();
+
+
+  getEpisodesOfShow(episodeId);
+
+  $episodesArea.show();
+
+});
+
+
 /** Given a show ID, get from API and return (promise) array of episodes:
  *      { id, name, season, number }
  */
 
-// async function getEpisodesOfShow(id) { }
+async function getEpisodesOfShow(id) {
+  const episodes = await axios.get(`${TVMAZE_BASE_URL}/shows/${id}/episodes`);
 
-/** Write a clear docstring for this function... */
+  //follow the directions!!!
+}
 
-// function populateEpisodes(episodes) { }
+/** Given an array of episodes, append them to the #episodesList DOM*/
+
+function populateEpisodes(episodes) {
+  for (let episode of episodes) {
+    const $li = $('<li>');
+
+    $li.text(`${episode.name} (season ${episode.season}, number ${episode.number})`);
+    $episodesList.append($li);
+  }
+
+}
