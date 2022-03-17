@@ -135,6 +135,4 @@ async function searchForEpisodeAndDisplay(evt) {
 // Add event listener on the parent showList to listen for
 // a click on the button
 
-$showsList.on('click', '.Show-getEpisodes', (e) => {
-  searchForEpisodeAndDisplay(e);
-});
+$showsList.on('click', '.Show-getEpisodes', searchForEpisodeAndDisplay);
