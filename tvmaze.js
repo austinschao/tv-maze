@@ -6,7 +6,7 @@ const $episodesList = $('#episodesList');
 const $searchForm = $("#searchForm");
 const $searchFormTerm = $("#searchForm-term");
 const TVMAZE_BASE_URL = "http://api.tvmaze.com";
-const MISSING_IMG_URL = 'https://store-images.s-microsoft.com/image/apps.65316.13510798887490672.6e1ebb25-96c8-4504-b714-1f7cbca3c5ad.f9514a23-1eb8-4916-a18e-99b1a9817d15?mode=scale&q=90&h=300&w=300';
+const MISSING_IMG_URL = 'https://tinyurl.com/tv-missing';
 
 
 
@@ -18,9 +18,7 @@ const MISSING_IMG_URL = 'https://store-images.s-microsoft.com/image/apps.65316.1
  */
 
 async function getShowsByTerm(term) {
-  // ADD: Remove placeholder & make request to TVMaze search shows API.
   $searchFormTerm.val("");
-
 
   const response = await axios.get(
     `${TVMAZE_BASE_URL}/search/shows`,
@@ -29,24 +27,19 @@ async function getShowsByTerm(term) {
 
   const shows = [];
 
-  //map!!!
-  for (let i = 0; i < response.data.length; i++) {
-    let show = {};
-    show.id = response.data[i].show.id;
-    show.name = response.data[i].show.name;
-    //ternary operator CLEAN IT UP!!!
-    if (response.data[i].show.summary !== null) {
-      show.summary = response.data[i].show.summary;
-    } else {
-      show.summary = 'No Summary';
-    }
-    if (response.data[i].show.image !== null) {
-      show.image = response.data[i].show.image.original;
-    } else {
-      show.image = MISSING_IMG_URL;
-    }
-    shows.push(show);
-  }
+  response.data.map(show => {
+    const showInfo = {};
+
+    showInfo.id = show.show.id;
+    showInfo.name = show.show.name;
+
+    (show.show.summary !== null) ?
+    showInfo.summary = show.show.summary : showInfo.summary = 'No Summary';
+    (show.show.image !== null) ?
+    showInfo.image = show.show.image.original : showInfo.image = 'MISSING_IMG_URL';
+    shows.push(showInfo);
+  });
+
   return shows;
 }
 
@@ -95,35 +88,25 @@ $searchForm.on("submit", async function (evt) {
   await searchForShowAndDisplay();
 });
 
-
-/** Make the episode list visible */
-
-// Add event listener on the parent showList to listen for
-// a click on the button
-// find the specific button of the episodes or it will work on all other buttons too
-// Give the anon function a name! (its a conductor fx)
-
-$showsList.on('click', 'button', function(e) {
-  const $episode = $(e.target.closest('.Show'));
-  const episodeId = $episode.data().showId;
-  $episodesList.empty();
-
-
-  getEpisodesOfShow(episodeId);
-
-  $episodesArea.show();
-
-});
-
-
 /** Given a show ID, get from API and return (promise) array of episodes:
  *      { id, name, season, number }
  */
 
 async function getEpisodesOfShow(id) {
   const episodes = await axios.get(`${TVMAZE_BASE_URL}/shows/${id}/episodes`);
+  const episodeList= [];
 
-  //follow the directions!!!
+  episodes.data.map(episode => {
+    const episodeInfo = {};
+
+    episodeInfo.id = id;
+    episodeInfo.name = episode.name;
+    episodeInfo.season = episode.season;
+    episodeInfo.number = episode.number;
+
+    episodeList.push(episodeInfo);
+  });
+  return episodeList;
 }
 
 /** Given an array of episodes, append them to the #episodesList DOM*/
@@ -135,5 +118,23 @@ function populateEpisodes(episodes) {
     $li.text(`${episode.name} (season ${episode.season}, number ${episode.number})`);
     $episodesList.append($li);
   }
-
 }
+
+/** Search for episode id and make the episode area visible */
+
+async function searchForEpisodeAndDisplay(evt) {
+  const $episode = $(evt.target.closest('.Show'));
+  const episodeId = $episode.data().showId;
+  const showOfEpisodes = await getEpisodesOfShow(episodeId);
+
+  $episodesList.empty();
+  populateEpisodes(showOfEpisodes);
+  $episodesArea.show();
+}
+
+// Add event listener on the parent showList to listen for
+// a click on the button
+
+$showsList.on('click', '.Show-getEpisodes', (e) => {
+  searchForEpisodeAndDisplay(e);
+});
